@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <a href="{{ url_for('events') }}" style="color: #9ca3af; text-decoration: none;">&larr; BACK TO EVENTS</a>
+</div>
+
+<h2>Event Reports</h2>
+
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
+    <button class="primary" onclick="switchTab('overview')" id="tabOverview" style="border-bottom: 2px solid #ffffff;">Overview</button>
+    <button onclick="switchTab('personal')" id="tabPersonal">Personal View</button>
+</div>
+
+<!-- Overview Tab -->
+<div id="overviewTab">
+    <div class="report-stats">
+        <div class="stat-card">
+            <h3 style="margin: 0; font-size: 1.5rem; color: #3b82f6;">{{ total_events }}</h3>
+            <p style="margin: 4px 0 0 0; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; font-weight: 600;">Total Events</p>
+        </div>
+        <div class="stat-card">
+            <h3 style="margin: 0; font-size: 1.5rem; color: #22c55e;">{{ events_with_links }}</h3>
+            <p style="margin: 4px 0 0 0; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; font-weight: 600;">With Links</p>
+        </div>
+        <div class="stat-card">
+            <h3 style="margin: 0; font-size: 1.5rem; color: #a855f7;">{{ monthly_counts|length }}</h3>
+            <p style="margin: 4px 0 0 0; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; font-weight: 600;">Active Months</p>
+        </div>
+    </div>
+
+    <div class="list-panel">
+        <span class="panel-label">[ STATS ]</span>
+        <h2 style="margin-top: 0;">Events by Month</h2>
+        {% if monthly_counts %}
+        <table>
+            <thead>
+                <tr><th>Month</th><th>Count</th></tr>
+            </thead>
+            <tbody>
+                {% for month, count in monthly_counts.items()|sort(reverse=true) %}
+                <tr>
+                    <td><strong style="color: #ffffff;">{{ month }}</strong></td>
+                    <td><span style="color: #3b82f6; font-weight: 600;">{{ count }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-state">No event data available.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Personal Tab -->
+<div id="personalTab" style="display: none;">
+    <div class="list-panel">
+        <span class="panel-label">[ TIMELINE ]</span>
+        <h2 style="margin-top: 0;">All Events (Personal Timeline)</h2>
+        {% if events %}
+        <table>
+            <thead>
+                <tr><th>Date</th><th>Time</th><th>Event</th><th>Description</th><th>Link</th></tr>
+            </thead>
+            <tbody>
+                {% for event in events %}
+                <tr>
+                    <td>{{ event.event_date or '-' }}</td>
+                    <td><strong style="color: #ffffff;">{{ event.event_time }}</strong></td>
+                    <td style="color: #ffffff;">{{ event.title }}</td>
+                    <td>{{ event.description }}</td>
+                    <td>
+                        {% if event.event_link %}
+                        <a href="{{ event.event_link }}" target="_blank" style="color: #3b82f6;">Open</a>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-state">No events found.</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function switchTab(tab) {
+        const overviewTab = document.getElementById('overviewTab');
+        const personalTab = document.getElementById('personalTab');
+        const tabOverview = document.getElementById('tabOverview');
+        const tabPersonal = document.getElementById('tabPersonal');
+        
+        if (tab === 'overview') {
+            overviewTab.style.display = 'block';
+            personalTab.style.display = 'none';
+            tabOverview.style.borderBottom = '2px solid #ffffff';
+            tabPersonal.style.borderBottom = 'none';
+        } else {
+            overviewTab.style.display = 'none';
+            personalTab.style.display = 'block';
+            tabPersonal.style.borderBottom = '2px solid #ffffff';
+            tabOverview.style.borderBottom = 'none';
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <a href="{{ url_for('events') }}" style="color: #9ca3af; text-decoration: none;">&larr; BACK TO EVENTS</a>
+</div>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+            <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: #ffffff; text-transform: uppercase; letter-spacing: -0.02em;">{{ event.title }}</h2>
+            <p style="margin-top: 0;">
+                {{ event.event_date or 'No date' }}
+                {% if event.event_time %} &bull; {{ event.event_time }}{% endif %}
+            </p>
+        </div>
+        {% if event.event_link %}
+        <a href="{{ event.event_link }}" target="_blank" style="color: #3b82f6; text-decoration: none; padding: 6px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid #3b82f6;">Open Link</a>
+        {% endif %}
+    </div>
+    <div style="display: flex; gap: 0.5rem; align-items: flex-start; margin-top: 1rem;">
+        {% if event.description %}
+        <p id="eventDescDisplay" style="flex: 1; margin: 0;">{{ event.description }}</p>
+        {% endif %}
+        <button id="editDescBtn" class="primary" onclick="toggleDescEdit()" style="font-size: 10px; white-space: nowrap;">Edit Description</button>
+    </div>
+    <div id="eventDescEditor" style="display: none; margin-top: 1rem;">
+        <form method="POST" action="{{ url_for('event_detail', id=event.id) }}">
+            <input type="hidden" name="action" value="save_report">
+            <label>Description</label>
+            <textarea name="description" rows="3" style="width: 100%; padding: 8px; background: #000; color: #fff; border: 1px solid #262626; font-family: inherit; font-size: 13px; box-sizing: border-box;">{{ event.description or '' }}</textarea>
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                <button type="submit" class="primary">Save Description</button>
+                <button type="button" onclick="toggleDescEdit()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Attendees Section -->
+<div class="list-panel" style="margin-bottom: 1.5rem;">
+    <span class="panel-label">[ ATTENDEES ]</span>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin-top: 0; margin-bottom: 0;">People Attended</h2>
+        <button class="primary" onclick="togglePanel('addAttendeePanel')" style="font-size: 10px;">+ Add Attendee</button>
+    </div>
+
+    <div id="addAttendeePanel" class="input-panel" style="display: none; margin-top: 1rem;">
+        <form method="POST" action="{{ url_for('add_event_attendee', event_id=event.id) }}" class="control-panel" style="margin-bottom: 0;">
+            <div class="form-group" style="flex: 1; min-width: 200px;">
+                <label>Person</label>
+                <select name="person_id" required>
+                    <option value="">Select someone...</option>
+                    {% for p in all_people %}
+                    <option value="{{ p.id }}">{{ p.name }} ({{ p.primary_archetype or '-' }} / {{ p.caste or '-' }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="margin-bottom: 2px;">
+                <button type="submit">Add</button>
+            </div>
+        </form>
+    </div>
+
+    {% if event.attendees %}
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem;">
+        {% for att in event.attendees %}
+        <div style="display: flex; align-items: center; gap: 0.5rem; padding: 8px 12px; background: #000; border: 1px solid #262626;">
+            <a href="{{ url_for('person_detail', id=att.person.id) }}" style="color: #ffffff; text-decoration: none; border-bottom: 1px solid #3b82f6;">{{ att.person.name }}</a>
+            <form method="POST" action="{{ url_for('remove_event_attendee', event_id=event.id, attendee_id=att.id) }}" style="margin: 0;">
+                <button type="submit" style="padding: 2px 6px; font-size: 10px; background: #ef4444; color: #fff; border-color: #ef4444; line-height: 1;">&times;</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-state" style="padding: 1rem 0; border: none; background: transparent;">No attendees recorded yet.</p>
+    {% endif %}
+</div>
+
+<!-- Reports Section -->
+<div class="list-panel">
+    <span class="panel-label">[ REPORTS ]</span>
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+        <button class="primary" onclick="switchReportTab('write')" id="tabWrite" style="border-bottom: 2px solid #ffffff;">Write</button>
+        <button onclick="switchReportTab('preview')" id="tabPreview">Preview</button>
+    </div>
+
+    <form method="POST" action="{{ url_for('event_detail', id=event.id) }}">
+        <input type="hidden" name="action" value="save_report">
+        <div id="writeTab">
+            <label for="report_content">Markdown Report</label>
+            <textarea id="report_content" name="report_content" rows="15" style="width: 100%; padding: 8px; background: #000000; color: #ffffff; border: 1px solid #262626; font-family: 'Courier New', monospace; font-size: 13px; box-sizing: border-box;" placeholder="Write your report in markdown...&#10;&#10;# Heading&#10;Some **bold** text and _italic_ text.&#10;- List item&#10;- Another item&#10;&#10;> A blockquote">{{ event.report_content or '' }}</textarea>
+        </div>
+        <div id="previewTab" style="display: none;">
+            <label>Preview</label>
+            <div id="markdownPreview" class="markdown-preview"></div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+            <button type="submit" class="primary">Save Report</button>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@5/marked.min.js"></script>
+<script>
+    function toggleDescEdit() {
+        const display = document.getElementById('eventDescDisplay');
+        const editor = document.getElementById('eventDescEditor');
+        const btn = document.getElementById('editDescBtn');
+        if (editor.style.display === 'none') {
+            editor.style.display = 'block';
+            if (display) display.style.display = 'none';
+            btn.textContent = 'Cancel';
+        } else {
+            editor.style.display = 'none';
+            if (display) display.style.display = 'block';
+            btn.textContent = 'Edit Description';
+        }
+    }
+
+    function switchReportTab(tab) {
+        const writeTab = document.getElementById('writeTab');
+        const previewTab = document.getElementById('previewTab');
+        const tabWrite = document.getElementById('tabWrite');
+        const tabPreview = document.getElementById('tabPreview');
+        if (tab === 'write') {
+            writeTab.style.display = 'block';
+            previewTab.style.display = 'none';
+            tabWrite.style.borderBottom = '2px solid #ffffff';
+            tabPreview.style.borderBottom = 'none';
+        } else {
+            writeTab.style.display = 'none';
+            previewTab.style.display = 'block';
+            tabPreview.style.borderBottom = '2px solid #ffffff';
+            tabWrite.style.borderBottom = 'none';
+            const text = document.getElementById('report_content').value;
+            document.getElementById('markdownPreview').innerHTML = marked.parse(text || '*No content to preview*', { breaks: true });
+        }
+    }
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            document.querySelector('form').submit();
+        }
+    });
+</script>
+{% endblock %}

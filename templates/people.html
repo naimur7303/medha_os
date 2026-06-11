@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; align-items: flex-end;">
+    <div style="flex: 1;">
+        <div class="filter-panel" style="margin: 0; padding: 10px;">
+            <form method="GET" action="{{ url_for('people') }}" class="filter-row" style="margin: 0;">
+                <div class="form-group" style="min-width: 120px;">
+                    <label>Search</label>
+                    <input type="text" name="search" placeholder="Name..." value="{{ applied_filters.search or '' }}">
+                </div>
+                <div class="form-group" style="min-width: 100px;">
+                    <label>Status</label>
+                    <select name="status">
+                        <option value="">Any</option>
+                        <option value="Active" {% if applied_filters.status == 'Active' %}selected{% endif %}>Active</option>
+                        <option value="Inactive" {% if applied_filters.status == 'Inactive' %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
+                <div class="form-group" style="min-width: 100px;">
+                    <label>Agency</label>
+                    <select name="agency">
+                        <option value="">Any</option>
+                        <option value="High" {% if applied_filters.agency == 'High' %}selected{% endif %}>High</option>
+                        <option value="Medium" {% if applied_filters.agency == 'Medium' %}selected{% endif %}>Medium</option>
+                        <option value="Low" {% if applied_filters.agency == 'Low' %}selected{% endif %}>Low</option>
+                    </select>
+                </div>
+                <div class="form-group" style="min-width: 100px;">
+                    <label>Archetype</label>
+                    <select name="archetype" id="filter_archetype" onchange="updateCasteOptions('filter_archetype', 'filter_caste', true)">
+                        <option value="">Any</option>
+                        <option value="B" {% if applied_filters.archetype == 'B' %}selected{% endif %}>B</option>
+                        <option value="W" {% if applied_filters.archetype == 'W' %}selected{% endif %}>W</option>
+                        <option value="M" {% if applied_filters.archetype == 'M' %}selected{% endif %}>M</option>
+                        <option value="S" {% if applied_filters.archetype == 'S' %}selected{% endif %}>S</option>
+                    </select>
+                </div>
+                <div class="form-group" style="min-width: 100px;">
+                    <label>Caste</label>
+                    <select name="caste" id="filter_caste">
+                        <option value="">Any</option>
+                        <option value="BB">BB</option><option value="BW">BW</option><option value="BM">BM</option><option value="BS">BS</option>
+                        <option value="WB">WB</option><option value="WW">WW</option><option value="WM">WM</option><option value="WS">WS</option>
+                        <option value="MB">MB</option><option value="MW">MW</option><option value="MM">MM</option><option value="MS">MS</option>
+                        <option value="SB">SB</option><option value="SW">SW</option><option value="SM">SM</option><option value="SS">SS</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 2px;">
+                    <button type="submit" class="primary">Filter</button>
+                    <a href="{{ url_for('people') }}" class="clear-btn">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div style="display: flex; align-items: flex-end; gap: 0.5rem; margin-bottom: 2px;">
+        <button class="primary" onclick="togglePanel('addPersonPanel')">+ Add Person</button>
+    </div>
+</div>
+
+<div id="addPersonPanel" class="input-panel" style="display: none;">
+    <span class="panel-label">[ INPUT PANEL ]</span>
+    <h2 style="margin-top: 0;">Add a Person</h2>
+    <form method="POST" action="{{ url_for('people') }}" class="control-panel" style="margin-bottom: 0;">
+        <div class="form-group" style="flex: 2; min-width: 150px;">
+            <label for="name">Name</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+        <div class="form-group">
+            <label for="primary_archetype">Archetype</label>
+            <select id="primary_archetype" name="primary_archetype" onchange="updateCasteOptions('primary_archetype', 'caste', false)">
+                <option value="">Select...</option>
+                <option value="B">B</option>
+                <option value="W">W</option>
+                <option value="M">M</option>
+                <option value="S">S</option>
+            </select>
+        </div>
+        <div class="form-group" style="flex: 1; min-width: 180px;">
+            <label for="caste">Caste</label>
+            <select id="caste" name="caste">
+                <option value="">Select Archetype first...</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="agency">Agency</label>
+            <select id="agency" name="agency">
+                <option value="">Select...</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex: 1; min-width: 150px; margin-bottom: 2px;">
+            <button type="submit" class="primary" style="width: 100%;">ADD PERSON</button>
+        </div>
+    </form>
+</div>
+
+<div class="list-panel">
+    <span class="panel-label">[ DIRECTORY / LIST ]</span>
+    <h2 style="margin-top: 0;">People Directory</h2>
+    {% if people %}
+    <table>
+        <thead>
+            <tr>
+                <th class="sortable" data-sort="name" data-order="{{ '_' if sort_by == 'name' and sort_order == 'asc' else 'asc' }}">Name {% if sort_by == 'name' %}<span class="sort-arrow">&#9662;</span>{% else %}<span class="sort-arrow sort-hint">&#9656;</span>{% endif %}</th>
+                <th class="sortable" data-sort="primary_archetype" data-order="{{ '_' if sort_by == 'primary_archetype' and sort_order == 'asc' else 'asc' }}">Archetype {% if sort_by == 'primary_archetype' %}<span class="sort-arrow">&#9662;</span>{% else %}<span class="sort-arrow sort-hint">&#9656;</span>{% endif %}</th>
+                <th class="sortable" data-sort="caste" data-order="{{ '_' if sort_by == 'caste' and sort_order == 'asc' else 'asc' }}">Caste {% if sort_by == 'caste' %}<span class="sort-arrow">&#9662;</span>{% else %}<span class="sort-arrow sort-hint">&#9656;</span>{% endif %}</th>
+                <th class="sortable" data-sort="agency" data-order="{{ '_' if sort_by == 'agency' and sort_order == 'asc' else 'asc' }}">Agency {% if sort_by == 'agency' %}<span class="sort-arrow">&#9662;</span>{% else %}<span class="sort-arrow sort-hint">&#9656;</span>{% endif %}</th>
+                <th class="sortable" data-sort="status" data-order="{{ '_' if sort_by == 'status' and sort_order == 'asc' else 'asc' }}">Status {% if sort_by == 'status' %}<span class="sort-arrow">&#9662;</span>{% else %}<span class="sort-arrow sort-hint">&#9656;</span>{% endif %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for person in people %}
+            <tr>
+                <td><strong><a href="{{ url_for('person_detail', id=person.id) }}" style="color: #ffffff; text-decoration: underline; text-underline-offset: 4px;">{{ person.name }}</a></strong></td>
+                <td>{{ person.primary_archetype }}</td>
+                <td>{{ person.caste }}</td>
+                <td>{{ person.agency }}</td>
+                <td>{{ person.status }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No people found.</p>
+    {% endif %}
+</div>
+
+<script>
+    const castesByArchetype = {
+        'B': ['B', 'BB', 'BW', 'BM', 'BS'],
+        'W': ['W', 'WB', 'WW', 'WM', 'WS'],
+        'M': ['M', 'MB', 'MW', 'MM', 'MS'],
+        'S': ['S', 'SB', 'SW', 'SM', 'SS']
+    };
+
+    function updateCasteOptions(archetypeSelectId, casteSelectId, isFilter) {
+        const archSelect = document.getElementById(archetypeSelectId);
+        const casteSelect = document.getElementById(casteSelectId);
+        const selectedArch = archSelect.value;
+        
+        casteSelect.innerHTML = '';
+        
+        if (isFilter) {
+            casteSelect.add(new Option('Any Caste', ''));
+        } else {
+            if (!selectedArch) {
+                casteSelect.add(new Option('Select Archetype first...', ''));
+                return;
+            } else {
+                casteSelect.add(new Option('Select...', ''));
+            }
+        }
+        
+        if (selectedArch && castesByArchetype[selectedArch]) {
+            castesByArchetype[selectedArch].forEach(c => {
+                casteSelect.add(new Option(c, c));
+            });
+        } else if (isFilter && !selectedArch) {
+            Object.values(castesByArchetype).flat().forEach(c => {
+                casteSelect.add(new Option(c, c));
+            });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        updateCasteOptions('primary_archetype', 'caste', false);
+        updateCasteOptions('filter_archetype', 'filter_caste', true);
+        document.querySelectorAll('.sortable').forEach(th => {
+            th.addEventListener('click', function() {
+                const params = new URLSearchParams(window.location.search);
+                if (this.dataset.order === '_') {
+                    params.set('sort_by', '_');
+                    params.delete('sort_order');
+                } else {
+                    params.set('sort_by', this.dataset.sort);
+                    params.set('sort_order', this.dataset.order);
+                }
+                window.location = '{{ url_for("people") }}?' + params.toString();
+            });
+        });
+    });
+</script>
+{% endblock %}

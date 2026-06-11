@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; align-items: flex-end;">
+    <div style="flex: 1;">
+        <div class="filter-panel" style="margin: 0; padding: 10px;">
+            <form method="GET" action="{{ url_for('projects') }}" class="filter-row" style="margin: 0;">
+                <div class="form-group" style="min-width: 120px;">
+                    <label>Search</label>
+                    <input type="text" name="search" placeholder="Project title..." value="{{ applied_filters.search or '' }}">
+                </div>
+                <div class="form-group" style="min-width: 120px;">
+                    <label>Type</label>
+                    <select name="project_type">
+                        <option value="">Any Type</option>
+                        <option value="experiential" {% if applied_filters.project_type == 'experiential' %}selected{% endif %}>Experiential</option>
+                        <option value="knowledge" {% if applied_filters.project_type == 'knowledge' %}selected{% endif %}>Knowledge</option>
+                        <option value="community" {% if applied_filters.project_type == 'community' %}selected{% endif %}>Community</option>
+                        <option value="media" {% if applied_filters.project_type == 'media' %}selected{% endif %}>Media</option>
+                        <option value="startup" {% if applied_filters.project_type == 'startup' %}selected{% endif %}>Startup</option>
+                    </select>
+                </div>
+                <div class="form-group" style="min-width: 120px;">
+                    <label>Status</label>
+                    <select name="status">
+                        <option value="">Any Status</option>
+                        <option value="Active" {% if applied_filters.status == 'Active' %}selected{% endif %}>Active</option>
+                        <option value="Paused" {% if applied_filters.status == 'Paused' %}selected{% endif %}>Paused</option>
+                        <option value="Occasional" {% if applied_filters.status == 'Occasional' %}selected{% endif %}>Occasional</option>
+                        <option value="Waiting" {% if applied_filters.status == 'Waiting' %}selected{% endif %}>Waiting</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 2px;">
+                    <button type="submit" class="primary">Filter</button>
+                    <a href="{{ url_for('projects') }}" class="clear-btn">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div style="display: flex; align-items: flex-end; gap: 0.5rem; margin-bottom: 2px;">
+        <button class="primary" onclick="togglePanel('createProjectPanel')">+ Create Project</button>
+    </div>
+</div>
+
+<div id="createProjectPanel" class="input-panel" style="display: none;">
+    <span class="panel-label">[ INPUT PANEL ]</span>
+    <h2 style="margin-top: 0;">Create a Project</h2>
+    <form method="POST" action="{{ url_for('projects') }}" class="control-panel" style="margin-bottom: 0;">
+        <div class="form-group" style="flex: 2; min-width: 150px;">
+            <label for="title">Project Title</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        <div class="form-group" style="flex: 3; min-width: 200px;">
+            <label for="description">Description</label>
+            <input type="text" id="description" name="description">
+        </div>
+        <div class="form-group">
+            <label for="project_type">Type</label>
+            <select id="project_type" name="project_type">
+                <option value="community">Community</option>
+                <option value="experiential">Experiential</option>
+                <option value="knowledge">Knowledge</option>
+                <option value="media">Media</option>
+                <option value="startup">Startup</option>
+            </select>
+        </div>
+        <div class="form-group" style="flex: 2; min-width: 150px;">
+            <label for="person_ids">Add People (Ctrl/Cmd+Click)</label>
+            <select id="person_ids" name="person_ids" multiple style="height: 60px;">
+                {% for p in all_people %}
+                <option value="{{ p.id }}">{{ p.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" name="status">
+                <option value="Active">Active</option>
+                <option value="Paused">Paused</option>
+                <option value="Occasional">Occasional</option>
+                <option value="Waiting">Waiting</option>
+            </select>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex: 1; min-width: 150px; margin-bottom: 2px;">
+            <button type="submit" class="primary" style="width: 100%;">CREATE PROJECT</button>
+        </div>
+    </form>
+</div>
+
+<div class="list-panel">
+    <span class="panel-label">[ DIRECTORY / LIST ]</span>
+    <h2 style="margin-top: 0;">Projects List</h2>
+    {% if projects %}
+    <table>
+        <thead>
+            <tr>
+                <th class="sortable" data-sort="title" data-order="{{ '_' if sort_by == 'title' and sort_order == 'asc' else 'asc' }}">Title {% if sort_by == 'title' %}<span class="sort-arrow">&#9662;</span>{% else %}<span class="sort-arrow sort-hint">&#9656;</span>{% endif %}</th>
+                <th class="sortable" data-sort="project_type" data-order="{{ '_' if sort_by == 'project_type' and sort_order == 'asc' else 'asc' }}">Type {% if sort_by == 'project_type' %}<span class="sort-arrow">&#9662;</span>{% else %}<span class="sort-arrow sort-hint">&#9656;</span>{% endif %}</th>
+                <th class="sortable" data-sort="status" data-order="{{ '_' if sort_by == 'status' and sort_order == 'asc' else 'asc' }}">Status {% if sort_by == 'status' %}<span class="sort-arrow">&#9662;</span>{% else %}<span class="sort-arrow sort-hint">&#9656;</span>{% endif %}</th>
+                <th>Description</th>
+                <th>Assigned People</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for project in projects %}
+            <tr>
+                <td><strong><a href="{{ url_for('project_detail', id=project.id) }}" style="color: #ffffff; text-decoration: none; border-bottom: 1px solid #3b82f6;">{{ project.title }}</a></strong></td>
+                <td><span style="color: #a855f7; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em;">{{ project.project_type }}</span></td>
+                <td>
+                    <span style="
+                        padding: 4px 8px; 
+                        border-radius: 0; 
+                        font-size: 11px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.1em;
+                        border: 1px solid #222;
+                        background-color: #0f0f10;
+                        {% if project.status == 'Active' %}color: #22c55e;
+                        {% elif project.status == 'Paused' %}color: #f59e0b;
+                        {% elif project.status == 'Occasional' %}color: #a855f7;
+                        {% elif project.status == 'Waiting' %}color: #6b7280;
+                        {% else %}color: #9ca3af;{% endif %}
+                    ">
+                        {{ project.status }}
+                    </span>
+                </td>
+                <td>{{ project.description }}</td>
+                <td>
+                    {% if project.people %}
+                        <ul style="margin: 0; padding-left: 1.2rem; color: #9ca3af;">
+                        {% for pp in project.people %}
+                            <li>{{ pp.person.name }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <span style="color: #9ca3af; font-style: italic;">None</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No projects found.</p>
+    {% endif %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.sortable').forEach(th => {
+            th.addEventListener('click', function() {
+                const params = new URLSearchParams(window.location.search);
+                if (this.dataset.order === '_') {
+                    params.set('sort_by', '_');
+                    params.delete('sort_order');
+                } else {
+                    params.set('sort_by', this.dataset.sort);
+                    params.set('sort_order', this.dataset.order);
+                }
+                window.location = '{{ url_for("projects") }}?' + params.toString();
+            });
+        });
+    });
+</script>
+{% endblock %}

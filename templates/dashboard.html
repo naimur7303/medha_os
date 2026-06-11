@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<h2>System Overview</h2>
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
+    <div class="card" style="flex: 1; margin: 0; padding: 12px; text-align: center;">
+        <h3 style="margin: 0; font-size: 1.5rem; color: #3b82f6;">{{ people_count }}</h3>
+        <p style="margin: 4px 0 0 0; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; font-weight: 600;">People</p>
+    </div>
+    <div class="card" style="flex: 1; margin: 0; padding: 12px; text-align: center;">
+        <h3 style="margin: 0; font-size: 1.5rem; color: #a855f7;">{{ total_active_relations }}</h3>
+        <p style="margin: 4px 0 0 0; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; font-weight: 600;">Active Links</p>
+    </div>
+    <div class="card" style="flex: 1; margin: 0; padding: 12px; text-align: center;">
+        <h3 style="margin: 0; font-size: 1.5rem; color: {% if unassigned_people > 0 %}#f59e0b{% else %}#ffffff{% endif %};">{{ unassigned_people }}</h3>
+        <p style="margin: 4px 0 0 0; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; font-weight: 600;">Unassigned</p>
+    </div>
+    <div class="card" style="flex: 1; margin: 0; padding: 12px; text-align: center;">
+        <h3 style="margin: 0; font-size: 1.5rem; color: #22c55e;">{{ projects_count }}</h3>
+        <p style="margin: 4px 0 0 0; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; font-weight: 600;">Projects</p>
+    </div>
+    <div class="card" style="flex: 1; margin: 0; padding: 12px; text-align: center;">
+        <h3 style="margin: 0; font-size: 1.5rem; color: {% if projects_with_no_people > 0 %}#f59e0b{% else %}#ffffff{% endif %};">{{ projects_with_no_people }}</h3>
+        <p style="margin: 4px 0 0 0; text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; font-weight: 600;">Empty Projects</p>
+    </div>
+</div>
+
+<h2>Distributions</h2>
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
+    <div class="card" style="flex: 1; margin: 0; padding: 12px;">
+        <h2 style="text-align: center; margin-bottom: 8px;">Archetype</h2>
+        <div style="height: 180px; position: relative;"><canvas id="archetypeChart"></canvas></div>
+    </div>
+    <div class="card" style="flex: 1; margin: 0; padding: 12px;">
+        <h2 style="text-align: center; margin-bottom: 8px;">Agency</h2>
+        <div style="height: 180px; position: relative;"><canvas id="agencyChart"></canvas></div>
+    </div>
+    <div class="card" style="flex: 1; margin: 0; padding: 12px;">
+        <h2 style="text-align: center; margin-bottom: 8px;">Project Status</h2>
+        <div style="height: 180px; position: relative;"><canvas id="projectStatusChart"></canvas></div>
+    </div>
+</div>
+
+<h2>System Awareness</h2>
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1.5rem;">
+    <!-- Column 1 -->
+    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <div class="card" style="margin: 0; padding: 12px; height: 100%;">
+            <h2 style="color: #ef4444; border-bottom: 1px solid #ef4444;">Forgotten People (>7 Days)</h2>
+            {% if forgotten_people %}
+            <table>
+                <thead>
+                    <tr><th>Name</th><th>Agency/Caste</th><th>Projects</th><th>Days</th></tr>
+                </thead>
+                <tbody>
+                    {% for p in forgotten_people %}
+                    <tr>
+                        <td><a href="{{ url_for('person_detail', id=p.id) }}" style="color: #fff; text-decoration: none;">{{ p.name }}</a></td>
+                        <td>{{ p.agency or '-' }} / {{ p.caste or '-' }}</td>
+                        <td>
+                            {% if p.projects %}
+                                {% for rel in p.projects %}{{ rel.project.title }}{% if not loop.last %}, {% endif %}{% endfor %}
+                            {% else %}
+                                <span style="color: #71717a;">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td><strong style="color: {% if p.days_since_update >= 30 %}#ef4444{% elif p.days_since_update >= 14 %}#f97316{% else %}#eab308{% endif %};">{{ p.days_since_update }}d</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-state" style="padding: 1rem 0; border: none; background: transparent;">All profiles active.</p>
+            {% endif %}
+        </div>
+        <div class="card" style="margin: 0; padding: 12px; height: 100%;">
+            <h2 style="color: #f59e0b; border-bottom: 1px solid #f59e0b;">Unassigned People</h2>
+            {% if unassigned_people_list %}
+            <table>
+                <thead>
+                    <tr><th>Name</th><th>Caste</th></tr>
+                </thead>
+                <tbody>
+                    {% for p in unassigned_people_list %}
+                    <tr>
+                        <td><a href="{{ url_for('person_detail', id=p.id) }}" style="color: #fff; text-decoration: none;">{{ p.name }}</a></td>
+                        <td>{{ p.caste or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-state" style="padding: 1rem 0; border: none; background: transparent;">None</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Column 2 -->
+    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <div class="card" style="margin: 0; padding: 12px; height: 100%;">
+            <h2 style="color: #ef4444; border-bottom: 1px solid #ef4444;">Slow Projects (>7 Days)</h2>
+            {% if slow_projects %}
+            <table>
+                <thead>
+                    <tr><th>Project</th><th>Status</th><th>Days</th></tr>
+                </thead>
+                <tbody>
+                    {% for pr in slow_projects %}
+                    <tr>
+                        <td><a href="{{ url_for('project_detail', id=pr.id) }}" style="color: #fff; text-decoration: none;">{{ pr.title }}</a></td>
+                        <td>{{ pr.status }}</td>
+                        <td><strong style="color: {% if pr.days_since_update >= 30 %}#ef4444{% elif pr.days_since_update >= 14 %}#f97316{% else %}#eab308{% endif %};">{{ pr.days_since_update }}d</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-state" style="padding: 1rem 0; border: none; background: transparent;">All projects active.</p>
+            {% endif %}
+        </div>
+        <div class="card" style="margin: 0; padding: 12px; height: 100%;">
+            <h2 style="color: #f59e0b; border-bottom: 1px solid #f59e0b;">Empty Projects</h2>
+            {% if empty_projects_list %}
+            <table>
+                <thead>
+                    <tr><th>Project</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    {% for pr in empty_projects_list %}
+                    <tr>
+                        <td><a href="{{ url_for('project_detail', id=pr.id) }}" style="color: #fff; text-decoration: none;">{{ pr.title }}</a></td>
+                        <td>{{ pr.status }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-state" style="padding: 1rem 0; border: none; background: transparent;">None</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Column 3 -->
+    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <div class="card" style="margin: 0; padding: 12px; height: 100%;">
+            <h2 style="color: #22c55e; border-bottom: 1px solid #22c55e;">Recent Updates (Top 10)</h2>
+            {% if recent_updates %}
+            <table>
+                <thead>
+                    <tr><th>Type</th><th>Name</th><th>When</th></tr>
+                </thead>
+                <tbody>
+                    {% for item in recent_updates %}
+                    <tr>
+                        <td><span style="font-size: 10px; text-transform: uppercase; padding: 2px 4px; background: #262626; border-radius: 2px;">{{ item.type }}</span></td>
+                        <td>{{ item.name }}</td>
+                        <td style="color: #9ca3af;">{{ item.updated_at.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-state" style="padding: 1rem 0; border: none; background: transparent;">No updates.</p>
+            {% endif %}
+        </div>
+        <div class="card" style="margin: 0; padding: 12px; height: 100%;">
+            <h2 style="color: #3b82f6; border-bottom: 1px solid #3b82f6;">Upcoming Tasks (Next 5)</h2>
+            {% if upcoming_tasks %}
+            <table>
+                <thead>
+                    <tr><th>Task</th><th>Project</th><th>Due</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    {% for t in upcoming_tasks %}
+                    <tr>
+                        <td><a href="{{ url_for('task_detail', task_id=t.id) }}" style="color: #fff; text-decoration: none; border-bottom: 1px solid #3b82f6;">{{ t.title }}</a></td>
+                        <td>{% if t.project %}{{ t.project.title }}{% else %}<span style="color: #71717a;">Personal</span>{% endif %}</td>
+                        <td><strong style="color: #f59e0b;">{{ t.due_date }}</strong></td>
+                        <td><span style="color: {% if t.status == 'Pending' %}#f59e0b{% else %}#3b82f6{% endif %};">{{ t.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-state" style="padding: 1rem 0; border: none; background: transparent;">No upcoming tasks.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    Chart.defaults.color = '#71717a';
+    Chart.defaults.font.family = "'Geist', 'Inter', system-ui, sans-serif";
+    Chart.defaults.font.size = 10;
+    
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '85%',
+        plugins: {
+            legend: { 
+                position: 'right', 
+                labels: { usePointStyle: true, boxWidth: 6, padding: 10, font: { size: 10 } } 
+            },
+            tooltip: { backgroundColor: '#000', titleColor: '#fff', bodyColor: '#9ca3af', borderColor: '#262626', borderWidth: 1, cornerRadius: 0 }
+        },
+        elements: { arc: { borderWidth: 0 } }
+    };
+
+    new Chart(document.getElementById('archetypeChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['B', 'W', 'M', 'S'],
+            datasets: [{
+                data: [{{ archetype_counts['B'] }}, {{ archetype_counts['W'] }}, {{ archetype_counts['M'] }}, {{ archetype_counts['S'] }}],
+                backgroundColor: ['#ef4444', '#3b82f6', '#eab308', '#22c55e']
+            }]
+        },
+        options: commonOptions
+    });
+
+    new Chart(document.getElementById('agencyChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['High', 'Med', 'Low'],
+            datasets: [{
+                data: [{{ agency_counts['High'] }}, {{ agency_counts['Medium'] }}, {{ agency_counts['Low'] }}],
+                backgroundColor: ['#22c55e', '#f97316', '#ef4444']
+            }]
+        },
+        options: commonOptions
+    });
+
+    new Chart(document.getElementById('projectStatusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Active', 'Paused', 'Occasional', 'Waiting'],
+            datasets: [{
+                data: [{{ project_status_counts['Active'] }}, {{ project_status_counts['Paused'] }}, {{ project_status_counts['Occasional'] }}, {{ project_status_counts['Waiting'] }}],
+                backgroundColor: ['#22c55e', '#f59e0b', '#a855f7', '#6b7280']
+            }]
+        },
+        options: commonOptions
+    });
+</script>
+{% endblock %}

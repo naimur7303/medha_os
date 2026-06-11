@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; align-items: flex-end;">
+    <div style="flex: 1;">
+        <div class="filter-panel" style="margin: 0; padding: 10px;">
+            <form method="GET" action="{{ url_for('events') }}" class="filter-row" style="margin: 0;">
+                <div class="form-group" style="min-width: 120px;">
+                    <label>Search</label>
+                    <input type="text" name="search" placeholder="Search events..." value="{{ applied_filters.search or '' }}">
+                </div>
+                <div class="form-group" style="min-width: 120px;">
+                    <label>Date From</label>
+                    <input type="date" name="date_from" value="{{ applied_filters.date_from or '' }}">
+                </div>
+                <div class="form-group" style="min-width: 120px;">
+                    <label>Date To</label>
+                    <input type="date" name="date_to" value="{{ applied_filters.date_to or '' }}">
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 2px;">
+                    <button type="submit" class="primary">Filter</button>
+                    <a href="{{ url_for('events') }}" class="clear-btn">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div style="display: flex; align-items: flex-end; gap: 0.5rem; margin-bottom: 2px;">
+        <button class="primary" onclick="togglePanel('addEventPanel')">+ Add Event</button>
+        <a href="{{ url_for('event_reports') }}" style="color: #9ca3af; text-decoration: none; padding: 6px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid #3f3f46; background: #262626;">Reports</a>
+    </div>
+</div>
+
+<div id="addEventPanel" class="input-panel" style="display: none;">
+    <span class="panel-label">[ INPUT PANEL ]</span>
+    <h2 style="margin-top: 0;">Add an Event</h2>
+    <form method="POST" action="{{ url_for('events') }}" class="control-panel" style="margin-bottom: 0;">
+        <div class="form-group" style="flex: 2; min-width: 150px;">
+            <label for="title">Event Title</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        <div class="form-group" style="flex: 3; min-width: 200px;">
+            <label for="description">Description</label>
+            <input type="text" id="description" name="description">
+        </div>
+        <div class="form-group" style="flex: 1; min-width: 150px;">
+            <label for="event_link">Link (Optional)</label>
+            <input type="url" id="event_link" name="event_link" placeholder="https://...">
+        </div>
+        <div class="form-group">
+            <label for="event_date">Event Date</label>
+            <input type="date" id="event_date" name="event_date">
+        </div>
+        <div class="form-group">
+            <label for="event_time">Event Time</label>
+            <select id="event_time" name="event_time">
+                <option value="1 AM">1 AM</option>
+                <option value="2 AM">2 AM</option>
+                <option value="3 AM">3 AM</option>
+                <option value="4 AM">4 AM</option>
+                <option value="5 AM">5 AM</option>
+                <option value="6 AM">6 AM</option>
+                <option value="7 AM">7 AM</option>
+                <option value="8 AM">8 AM</option>
+                <option value="9 AM">9 AM</option>
+                <option value="10 AM">10 AM</option>
+                <option value="11 AM">11 AM</option>
+                <option value="12 PM">12 PM</option>
+                <option value="1 PM">1 PM</option>
+                <option value="2 PM">2 PM</option>
+                <option value="3 PM">3 PM</option>
+                <option value="4 PM">4 PM</option>
+                <option value="5 PM">5 PM</option>
+                <option value="6 PM">6 PM</option>
+                <option value="7 PM">7 PM</option>
+                <option value="8 PM">8 PM</option>
+                <option value="9 PM">9 PM</option>
+                <option value="10 PM">10 PM</option>
+                <option value="11 PM">11 PM</option>
+                <option value="12 AM">12 AM</option>
+            </select>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex: 1; min-width: 150px; margin-bottom: 2px;">
+            <button type="submit" class="primary" style="width: 100%;">CREATE EVENT</button>
+        </div>
+    </form>
+</div>
+
+<div class="list-panel">
+    <span class="panel-label">[ DIRECTORY / LIST ]</span>
+    <h2 style="margin-top: 0;">Events Feed</h2>
+    {% if events %}
+    <table>
+        <thead>
+            <tr>
+                <th class="sortable" data-sort="event_date" data-order="{{ '_' if sort_by == 'event_date' and sort_order == 'asc' else 'asc' }}">Date {% if sort_by == 'event_date' %}<span class="sort-arrow">&#9662;</span>{% else %}<span class="sort-arrow sort-hint">&#9656;</span>{% endif %}</th>
+                <th class="sortable" data-sort="event_time" data-order="{{ '_' if sort_by == 'event_time' and sort_order == 'asc' else 'asc' }}">Time {% if sort_by == 'event_time' %}<span class="sort-arrow">&#9662;</span>{% else %}<span class="sort-arrow sort-hint">&#9656;</span>{% endif %}</th>
+                <th class="sortable" data-sort="title" data-order="{{ '_' if sort_by == 'title' and sort_order == 'asc' else 'asc' }}">Title {% if sort_by == 'title' %}<span class="sort-arrow">&#9662;</span>{% else %}<span class="sort-arrow sort-hint">&#9656;</span>{% endif %}</th>
+                <th>Description</th>
+                <th>Link</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for event in events %}
+            <tr>
+                <td>{{ event.event_date or '-' }}</td>
+                <td><strong style="color: #ffffff;">{{ event.event_time }}</strong></td>
+                <td><a href="{{ url_for('event_detail', id=event.id) }}" class="event-title-link">{{ event.title }}</a></td>
+                <td>{{ event.description }}</td>
+                <td>
+                    {% if event.event_link %}
+                    <a href="{{ event.event_link }}" target="_blank" style="color: #3b82f6;">Link</a>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">No events found.</p>
+    {% endif %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.sortable').forEach(th => {
+            th.addEventListener('click', function() {
+                const params = new URLSearchParams(window.location.search);
+                if (this.dataset.order === '_') {
+                    params.set('sort_by', '_');
+                    params.delete('sort_order');
+                } else {
+                    params.set('sort_by', this.dataset.sort);
+                    params.set('sort_order', this.dataset.order);
+                }
+                window.location = '{{ url_for("events") }}?' + params.toString();
+            });
+        });
+    });
+</script>
+{% endblock %}

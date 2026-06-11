@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <a href="{{ url_for('people') }}" style="color: #9ca3af; text-decoration: none;">&larr; BACK TO PEOPLE</a>
+</div>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+            <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: #ffffff; text-transform: uppercase; letter-spacing: -0.02em;">{{ person.name }}</h2>
+            <p style="margin-top: 0;">Archetype: {{ person.primary_archetype or '-' }} &bull; Caste: {{ person.caste or '-' }} &bull; Agency: {{ person.agency or '-' }}</p>
+        </div>
+        <span style="padding: 6px 12px; border-radius: 0; font-size: 11px; font-weight: 600; border: 1px solid #222; background-color: #0f0f10; color: #ffffff; text-transform: uppercase; letter-spacing: 0.1em;">
+            {{ person.status }}
+        </span>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Connected Projects</h2>
+    {% if person.projects %}
+    <table>
+        <thead>
+            <tr>
+                <th>Project</th>
+                <th>Involvement</th>
+                <th>Doing What</th>
+                <th>Notes</th>
+                <th style="width: 150px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rel in person.projects %}
+            <tr>
+                <td style="vertical-align: top;">
+                    <a href="{{ url_for('project_detail', id=rel.project.id) }}" style="color: #ffffff; text-decoration: none; border-bottom: 1px solid #3b82f6;">{{ rel.project.title }}</a>
+                </td>
+                <td colspan="4" style="padding: 0; border-bottom: none;">
+                    <div id="read_mode_{{ rel.id }}" style="display: flex; width: 100%;">
+                        <div style="flex: 1; padding: 14px 16px;">{{ rel.involvement_level or '-' }}</div>
+                        <div style="flex: 1; padding: 14px 16px;">{{ rel.what_the_person_is_doing or '-' }}</div>
+                        <div style="flex: 1; padding: 14px 16px;">{{ rel.notes or '-' }}</div>
+                        <div style="width: 150px; padding: 14px 16px; display: flex; gap: 0.5rem;">
+                            <button type="button" onclick="toggleEdit('{{ rel.id }}')" style="padding: 6px 12px; font-size: 11px; background: #222; color: #ffffff;">Edit</button>
+                            <form method="POST" action="{{ url_for('delete_relation', rel_id=rel.id) }}" style="margin: 0;">
+                                <button type="submit" style="padding: 6px 12px; font-size: 11px; background: #ef4444; color: #ffffff;" onclick="return confirm('Remove person from project?')">Remove</button>
+                            </form>
+                        </div>
+                    </div>
+                    <form id="edit_mode_{{ rel.id }}" method="POST" action="{{ url_for('edit_relation', rel_id=rel.id) }}" style="display: none; width: 100%; margin: 0; background: #050505; padding: 10px;">
+                        <div style="display: flex; gap: 0.5rem;">
+                            <div style="flex: 1;">
+                                <select name="involvement_level" style="width: 100%; padding: 8px; background: #0f0f10; border: 1px solid #222; color: #fff;">
+                                    <option value="Core" {% if rel.involvement_level == 'Core' %}selected{% endif %}>Core</option>
+                                    <option value="Active" {% if rel.involvement_level == 'Active' %}selected{% endif %}>Active</option>
+                                    <option value="Occasional" {% if rel.involvement_level == 'Occasional' %}selected{% endif %}>Occasional</option>
+                                    <option value="Observer" {% if rel.involvement_level == 'Observer' %}selected{% endif %}>Observer</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1;">
+                                <input type="text" name="what_the_person_is_doing" value="{{ rel.what_the_person_is_doing or '' }}" placeholder="Doing what?" style="width: 100%; padding: 8px; background: #0f0f10; border: 1px solid #222; color: #fff;">
+                            </div>
+                            <div style="flex: 1;">
+                                <input type="text" name="notes" value="{{ rel.notes or '' }}" placeholder="Notes" style="width: 100%; padding: 8px; background: #0f0f10; border: 1px solid #222; color: #fff;">
+                            </div>
+                            <div style="width: 150px; display: flex; gap: 0.5rem; align-items: center;">
+                                <button type="submit" style="padding: 6px 12px; font-size: 11px; background: #ffffff; color: #000;">Save</button>
+                                <button type="button" onclick="toggleEdit('{{ rel.id }}')" style="padding: 6px 12px; font-size: 11px; background: transparent; color: #9ca3af;">Cancel</button>
+                            </div>
+                        </div>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-state">Not connected to any projects.</p>
+    {% endif %}
+</div>
+
+<!-- Project-Assigned Tasks Kanban (Functional) -->
+<div class="list-panel" style="margin-bottom: 2rem;">
+    <span class="panel-label">[ KANBAN ]</span>
+    <h2 style="margin-top: 0;">Project Tasks (Assigned)</h2>
+    <div class="kanban-board" style="margin-top: 1rem;">
+        {% for status, tasks in kanban_columns.items() %}
+        <div class="kanban-column">
+            <h3 style="color: {% if status == 'Pending' %}#f59e0b{% elif status == 'In Progress' %}#3b82f6{% elif status == 'Done' %}#22c55e{% else %}#71717a{% endif %};">
+                {{ status }} <span style="color: #71717a; margin-left: 6px;">({{ tasks|length }})</span>
+            </h3>
+            {% if tasks %}
+                {% for task in tasks %}
+                <div class="kanban-card" data-task-id="{{ task.id }}" data-task-title="{{ task.title }}" data-task-desc="{{ task.description or '' }}" data-task-info="{{ task.necessary_info or '' }}" data-task-person="{{ task.assigned_person.name if task.assigned_person else '' }}" data-task-due="{{ task.due_date or '' }}" data-task-notes="{{ task.notes or '' }}" onclick="openTaskModal(this.dataset)">
+                    <div class="card-title">{{ task.title }}</div>
+                    {% if task.project %}<div class="card-meta">Project: {{ task.project.title }}</div>{% endif %}
+                    {% if task.due_date %}<div class="card-meta">Due: {{ task.due_date }}</div>{% endif %}
+                    <div class="card-actions" onclick="event.stopPropagation()">
+                        {% if status != 'Skipped' and status != 'Done' %}
+                        <form method="POST" action="{{ url_for('update_task_status', task_id=task.id) }}" style="margin: 0;">
+                            <input type="hidden" name="status" value="Skipped">
+                            <button type="submit" style="background: #6b7280; color: #fff; border-color: #6b7280;">Skip</button>
+                        </form>
+                        {% endif %}
+                        {% if status == 'Pending' %}
+                        <form method="POST" action="{{ url_for('update_task_status', task_id=task.id) }}" style="margin: 0;">
+                            <input type="hidden" name="status" value="In Progress">
+                            <button type="submit" style="background: #3b82f6; color: #fff; border-color: #3b82f6;">Start</button>
+                        </form>
+                        {% elif status == 'In Progress' %}
+                        <form method="POST" action="{{ url_for('update_task_status', task_id=task.id) }}" style="margin: 0;">
+                            <input type="hidden" name="status" value="Done">
+                            <button type="submit" style="background: #22c55e; color: #000; border-color: #22c55e;">Done</button>
+                        </form>
+                        {% endif %}
+                        {% if status == 'In Progress' %}
+                        <form method="POST" action="{{ url_for('update_task_status', task_id=task.id) }}" style="margin: 0;">
+                            <input type="hidden" name="status" value="Pending">
+                            <button type="submit" style="background: #f59e0b; color: #000; border-color: #f59e0b;">&larr; Undo</button>
+                        </form>
+                        {% elif status == 'Done' %}
+                        <form method="POST" action="{{ url_for('update_task_status', task_id=task.id) }}" style="margin: 0;">
+                            <input type="hidden" name="status" value="In Progress">
+                            <button type="submit" style="background: #f59e0b; color: #000; border-color: #f59e0b;">&larr; Undo</button>
+                        </form>
+                        {% elif status == 'Skipped' %}
+                        <form method="POST" action="{{ url_for('update_task_status', task_id=task.id) }}" style="margin: 0;">
+                            <input type="hidden" name="status" value="Pending">
+                            <button type="submit" style="background: #f59e0b; color: #000; border-color: #f59e0b;">&larr; Restore</button>
+                        </form>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}" style="margin: 0;">
+                            <button type="submit" style="background: #ef4444; color: #fff; border-color: #ef4444;" onclick="return confirm('Delete?')">Del</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <p style="color: #71717a; font-size: 12px; text-align: center; padding: 1rem 0;">No tasks</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Personal Tasks Section -->
+<div class="list-panel" style="margin-bottom: 2rem;">
+    <span class="panel-label">[ PERSONAL ]</span>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin-top: 0; margin-bottom: 0;">Personal Tasks (Independent)</h2>
+        <button class="primary" onclick="togglePanel('addPersonalTaskPanel')" style="font-size: 10px;">+ Add Personal Task</button>
+    </div>
+
+    <div id="addPersonalTaskPanel" class="input-panel" style="display: none; margin-top: 1rem;">
+        <form method="POST" action="{{ url_for('add_personal_task', person_id=person.id) }}" class="control-panel" style="margin-bottom: 0;">
+            <div class="form-group" style="flex: 2; min-width: 150px;">
+                <label>Task Title</label>
+                <input type="text" name="title" required placeholder="What needs to be done?">
+            </div>
+            <div class="form-group" style="flex: 1; min-width: 120px;">
+                <label>Status</label>
+                <select name="status">
+                    <option value="Pending">Pending</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Done">Done</option>
+                    <option value="Skipped">Skipped</option>
+                </select>
+            </div>
+            <div class="form-group" style="flex: 1; min-width: 120px;">
+                <label>Due Date</label>
+                <input type="date" name="due_date">
+            </div>
+            <div class="form-group" style="flex: 2; min-width: 150px;">
+                <label>Description</label>
+                <input type="text" name="description" placeholder="Brief description">
+            </div>
+            <div class="form-group" style="flex: 2; min-width: 150px;">
+                <label>Necessary Info</label>
+                <input type="text" name="necessary_info" placeholder="Important details, links">
+            </div>
+            <div class="form-group" style="flex: 1; min-width: 120px;">
+                <label>Notes</label>
+                <input type="text" name="notes" placeholder="Notes">
+            </div>
+            <div style="margin-bottom: 2px;">
+                <button type="submit" class="primary">Add</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="kanban-board" style="margin-top: 1rem;">
+        {% for status, tasks in personal_kanban.items() %}
+        <div class="kanban-column">
+            <h3 style="color: {% if status == 'Pending' %}#f59e0b{% elif status == 'In Progress' %}#3b82f6{% elif status == 'Done' %}#22c55e{% else %}#71717a{% endif %};">
+                {{ status }} <span style="color: #71717a; margin-left: 6px;">({{ tasks|length }})</span>
+            </h3>
+            {% if tasks %}
+                {% for task in tasks %}
+                <div class="kanban-card" data-task-id="{{ task.id }}" data-task-title="{{ task.title }}" data-task-desc="{{ task.description or '' }}" data-task-info="{{ task.necessary_info or '' }}" data-task-person="" data-task-due="{{ task.due_date or '' }}" data-task-notes="{{ task.notes or '' }}" onclick="openTaskModal(this.dataset)">
+                    <div class="card-title">{{ task.title }}</div>
+                    {% if task.due_date %}<div class="card-meta">Due: {{ task.due_date }}</div>{% endif %}
+                    <div class="card-actions" onclick="event.stopPropagation()">
+                        {% if status != 'Skipped' and status != 'Done' %}
+                        <form method="POST" action="{{ url_for('update_task_status', task_id=task.id) }}" style="margin: 0;">
+                            <input type="hidden" name="status" value="Skipped">
+                            <button type="submit" style="background: #6b7280; color: #fff; border-color: #6b7280;">Skip</button>
+                        </form>
+                        {% endif %}
+                        {% if status == 'Pending' %}
+                        <form method="POST" action="{{ url_for('update_task_status', task_id=task.id) }}" style="margin: 0;">
+                            <input type="hidden" name="status" value="In Progress">
+                            <button type="submit" style="background: #3b82f6; color: #fff; border-color: #3b82f6;">Start</button>
+                        </form>
+                        {% elif status == 'In Progress' %}
+                        <form method="POST" action="{{ url_for('update_task_status', task_id=task.id) }}" style="margin: 0;">
+                            <input type="hidden" name="status" value="Done">
+                            <button type="submit" style="background: #22c55e; color: #000; border-color: #22c55e;">Done</button>
+                        </form>
+                        {% endif %}
+                        {% if status == 'In Progress' %}
+                        <form method="POST" action="{{ url_for('update_task_status', task_id=task.id) }}" style="margin: 0;">
+                            <input type="hidden" name="status" value="Pending">
+                            <button type="submit" style="background: #f59e0b; color: #000; border-color: #f59e0b;">&larr; Undo</button>
+                        </form>
+                        {% elif status == 'Done' %}
+                        <form method="POST" action="{{ url_for('update_task_status', task_id=task.id) }}" style="margin: 0;">
+                            <input type="hidden" name="status" value="In Progress">
+                            <button type="submit" style="background: #f59e0b; color: #000; border-color: #f59e0b;">&larr; Undo</button>
+                        </form>
+                        {% elif status == 'Skipped' %}
+                        <form method="POST" action="{{ url_for('update_task_status', task_id=task.id) }}" style="margin: 0;">
+                            <input type="hidden" name="status" value="Pending">
+                            <button type="submit" style="background: #f59e0b; color: #000; border-color: #f59e0b;">&larr; Restore</button>
+                        </form>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}" style="margin: 0;">
+                            <button type="submit" style="background: #ef4444; color: #fff; border-color: #ef4444;" onclick="return confirm('Delete?')">Del</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <p style="color: #71717a; font-size: 12px; text-align: center; padding: 1rem 0;">No personal tasks</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Task Detail Modal -->
+<div id="taskModal" class="modal-overlay" onclick="if(event.target===this)closeTaskModal()">
+    <div class="modal-content">
+        <h2 id="modalTaskTitle">Task Details</h2>
+        <form id="taskDetailForm" method="POST" action="">
+            <div class="modal-scroll">
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" name="title" id="modalTaskTitleInput">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="modalDescription" name="description" rows="3" placeholder="Task description..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Necessary Information</label>
+                    <textarea id="modalNecessaryInfo" name="necessary_info" rows="4" placeholder="Important details, links, context..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea id="modalNotes" name="notes" rows="2" placeholder="Notes..."></textarea>
+                </div>
+                <div id="modalTaskMeta" style="color: #71717a; font-size: 12px; margin-bottom: 1rem;"></div>
+            </div>
+            <div style="border-top: 1px solid #262626; padding-top: 12px; margin-top: 4px;">
+                <div style="display: flex; gap: 1rem;">
+                    <div class="form-group" style="flex: 1; margin-bottom: 8px;">
+                        <label>Due Date</label>
+                        <input type="date" name="due_date" id="modalDueDate" style="width: 100%; padding: 6px 8px; background: #000; color: #fff; border: 1px solid #262626; border-radius: 0; box-sizing: border-box; font-family: inherit; font-size: 13px;">
+                    </div>
+                    <div class="form-group" style="flex: 1; margin-bottom: 8px;">
+                        <label>Status</label>
+                        <select name="status" id="modalStatus" style="width: 100%; padding: 6px 8px; background: #000; color: #fff; border: 1px solid #262626; border-radius: 0; box-sizing: border-box; font-family: inherit; font-size: 13px;">
+                            <option value="Pending">Pending</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Done">Done</option>
+                            <option value="Skipped">Skipped</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="primary">Save</button>
+                    <a id="modalOpenPage" href="#" style="color: #3b82f6; text-decoration: none; padding: 6px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid #3f3f46; background: #262626;">Open Full Page</a>
+                    <button type="button" onclick="closeTaskModal()">Cancel</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleEdit(relId) {
+    const r = document.getElementById('read_mode_' + relId);
+    const e = document.getElementById('edit_mode_' + relId);
+    if (r.style.display === 'none') { r.style.display = 'flex'; e.style.display = 'none'; }
+    else { r.style.display = 'none'; e.style.display = 'flex'; }
+}
+
+function openTaskModal(d) {
+    document.getElementById('modalTaskTitle').textContent = d.taskTitle;
+    document.getElementById('modalTaskTitleInput').value = d.taskTitle;
+    document.getElementById('modalDescription').value = d.taskDesc || '';
+    document.getElementById('modalNecessaryInfo').value = d.taskInfo || '';
+    document.getElementById('modalDueDate').value = d.taskDue || '';
+    document.getElementById('modalNotes').value = d.taskNotes || '';
+    document.getElementById('taskDetailForm').action = '/task/' + d.taskId + '/update';
+    document.getElementById('modalOpenPage').href = '/task/' + d.taskId;
+    let meta = '';
+    if (d.taskPerson) meta += '<div>Assigned to: ' + d.taskPerson + '</div>';
+    if (d.taskDue) meta += '<div>Due: ' + d.taskDue + '</div>';
+    if (d.taskNotes) meta += '<div>Notes: ' + d.taskNotes + '</div>';
+    document.getElementById('modalTaskMeta').innerHTML = meta;
+    document.getElementById('taskModal').classList.add('active');
+}
+
+function closeTaskModal() {
+    document.getElementById('taskModal').classList.remove('active');
+}
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeTaskModal(); });
+</script>
+{% endblock %}

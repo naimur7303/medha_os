@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medha OS</title>
+    <style>
+        body {
+            font-family: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            color: #ffffff;
+            font-size: 13px;
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 240px;
+            height: 100vh;
+            background-color: #050505;
+            border-right: 1px solid #222;
+            padding: 1.5rem 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-header {
+            padding: 0 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .sidebar-header h1 {
+            font-weight: 700;
+            letter-spacing: -0.05em;
+            font-size: 1.25rem;
+            color: #ffffff;
+            margin: 0;
+            text-transform: uppercase;
+        }
+        .sidebar nav {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            padding: 0 1rem;
+        }
+        .sidebar nav a {
+            color: #9ca3af;
+            text-decoration: none;
+            padding: 0.75rem 1rem;
+            border-radius: 0;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: background-color 0.2s, color 0.2s, border-left 0.2s;
+            border-left: 2px solid transparent;
+            text-align: left;
+        }
+        .sidebar nav a:hover {
+            background-color: #111111;
+            color: #ffffff;
+        }
+        .sidebar nav a.active {
+            background-color: #0b0b0c;
+            color: #ffffff;
+            border-left: 2px solid #3b82f6;
+        }
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+        .sortable:hover {
+            color: #ffffff;
+        }
+        .sort-arrow {
+            color: #3b82f6;
+            font-size: 13px;
+            margin-left: 2px;
+        }
+        .sort-hint {
+            color: #6b7280;
+            font-size: 11px;
+            margin-left: 2px;
+        }
+        .kanban-board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+        }
+        .kanban-column {
+            background: #0b0b0c;
+            border: 1px solid #262626;
+            padding: 12px;
+        }
+        .kanban-column h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin: 0 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #262626;
+        }
+        .kanban-card {
+            background: #000000;
+            border: 1px solid #262626;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .kanban-card:hover {
+            border-color: #3b82f6;
+        }
+        .kanban-card .card-title {
+            color: #ffffff;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .kanban-card .card-meta {
+            color: #71717a;
+            font-size: 11px;
+        }
+        .kanban-card .card-actions {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+        }
+        .kanban-card .card-actions button,
+        .kanban-card .card-actions form {
+            margin: 0;
+        }
+        .kanban-card .card-actions button {
+            padding: 3px 8px;
+            font-size: 10px;
+        }
+        .kanban-card .card-title {
+            color: #ffffff;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .kanban-card .card-meta {
+            color: #71717a;
+            font-size: 11px;
+        }
+        .kanban-card .card-actions {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+        }
+        .kanban-card .card-actions button,
+        .kanban-card .card-actions form {
+            margin: 0;
+        }
+        .kanban-card .card-actions button {
+            padding: 3px 8px;
+            font-size: 10px;
+        }
+        .links-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .links-list .link-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 8px 12px;
+            background: #000000;
+            border: 1px solid #262626;
+        }
+        .links-list .link-item:hover {
+            border-color: #3b82f6;
+        }
+        .links-list .link-item a {
+            color: #3b82f6;
+            text-decoration: none;
+            flex: 1;
+        }
+        .links-list .link-item a:hover {
+            text-decoration: underline;
+        }
+        .links-list .link-item .link-type {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #71717a;
+            padding: 2px 6px;
+            border: 1px solid #262626;
+            background: #0f0f10;
+        }
+        .report-stats {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .report-stats .stat-card {
+            flex: 1;
+            background: #0b0b0c;
+            border: 1px solid #262626;
+            padding: 16px;
+            text-align: center;
+        }
+        .main-wrapper {
+            margin-left: 240px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 24px;
+        }
+        .card {
+            background: #0b0b0c;
+            padding: 16px;
+            border-radius: 0;
+            border: 1px solid #262626;
+            margin-bottom: 1rem;
+        }
+        h2 {
+            font-weight: 600;
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: #71717a;
+            margin-top: 0;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #262626;
+            padding-bottom: 6px;
+        }
+        h3 {
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #ffffff;
+            margin-top: 0;
+            font-size: 1.25rem;
+        }
+        p {
+            color: #9ca3af;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.5rem;
+            background: #000000;
+            border: 1px solid #262626;
+            table-layout: auto;
+        }
+        th, td {
+            padding: 6px 12px;
+            text-align: left;
+            border-bottom: 1px solid #262626;
+            color: #ffffff;
+            font-size: 13px;
+        }
+        th {
+            background-color: #0b0b0c;
+            color: #9ca3af;
+            font-weight: 600;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-bottom: 1px solid #262626;
+            padding-top: 8px;
+            padding-bottom: 8px;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 600;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #71717a;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 6px 8px;
+            background-color: #000000;
+            color: #ffffff;
+            border: 1px solid #262626;
+            border-radius: 0;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 13px;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        button {
+            background-color: #262626;
+            color: #ffffff;
+            border: 1px solid #3f3f46;
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 0;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        button:hover {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+            color: #ffffff;
+        }
+        button.primary {
+            background-color: #ffffff;
+            color: #000000;
+            border-color: #ffffff;
+        }
+        button.primary:hover {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+            color: #ffffff;
+        }
+        a.clear-btn {
+            color: #9ca3af;
+            text-decoration: none;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-radius: 0;
+            border: 1px solid transparent;
+            display: inline-block;
+        }
+        a.clear-btn:hover {
+            color: #ef4444;
+            border: 1px solid #ef4444;
+        }
+        .empty-state {
+            text-align: center;
+            color: #71717a;
+            padding: 2rem 0;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            background: #000000;
+            border: 1px solid #262626;
+        }
+        .panel-label {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #9ca3af;
+            margin-bottom: 8px;
+        }
+        .input-panel {
+            border: 1px solid #262626;
+            border-top: 2px solid #3b82f6;
+            background: #0f0f10;
+            padding: 12px;
+            margin-bottom: 1.5rem;
+        }
+        .filter-panel {
+            border: 1px solid #262626;
+            background: #0b0b0c;
+            padding: 12px;
+            margin-bottom: 1.5rem;
+        }
+        .list-panel {
+            border: 1px solid #262626;
+            background: #000000;
+            padding: 12px;
+        }
+        .control-panel {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .control-panel .form-group {
+            margin-bottom: 0;
+            flex: 1;
+            min-width: 120px;
+        }
+        /* Modal overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: #0b0b0c;
+            border: 1px solid #262626;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-content > form {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+        .modal-scroll {
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
+            padding-right: 4px;
+        }
+        .modal-content h2 {
+            font-size: 16px;
+            color: #ffffff;
+            text-transform: none;
+            letter-spacing: -0.02em;
+            border-bottom: 1px solid #262626;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+        .modal-content label {
+            display: block;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #71717a;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        .modal-content textarea {
+            width: 100%;
+            padding: 8px;
+            background: #000000;
+            color: #ffffff;
+            border: 1px solid #262626;
+            border-radius: 0;
+            font-family: inherit;
+            font-size: 13px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+        .modal-content textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .filter-row {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .filter-row .form-group {
+            margin-bottom: 0;
+            flex: 1;
+            min-width: 100px;
+        }
+        .event-title-link {
+            color: #ffffff;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .event-title-link:hover {
+            border-bottom-color: #3b82f6;
+        }
+        .markdown-preview {
+            background: #000000;
+            border: 1px solid #262626;
+            padding: 16px;
+            margin-top: 8px;
+            min-height: 60px;
+            color: #ffffff;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .markdown-preview h1, .markdown-preview h2, .markdown-preview h3 {
+            color: #ffffff;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .markdown-preview p {
+            color: #d4d4d4;
+        }
+        .markdown-preview code {
+            background: #1a1a1a;
+            padding: 2px 4px;
+            border: 1px solid #333;
+            font-size: 12px;
+        }
+        .markdown-preview pre code {
+            display: block;
+            padding: 12px;
+            margin: 8px 0;
+        }
+        .markdown-preview ul, .markdown-preview ol {
+            color: #d4d4d4;
+            padding-left: 1.5rem;
+        }
+        .markdown-preview em, .markdown-preview i {
+            color: #f0f0f0;
+            font-style: italic;
+        }
+        .markdown-preview strong, .markdown-preview b {
+            color: #ffffff;
+        }
+        .markdown-preview blockquote {
+            border-left: 3px solid #3b82f6;
+            margin: 8px 0;
+            padding: 8px 16px;
+            background: #0a0a0a;
+            color: #9ca3af;
+        }
+        .markdown-preview blockquote p {
+            margin: 0;
+            color: #9ca3af;
+        }
+        .markdown-preview hr {
+            border: none;
+            border-top: 1px solid #262626;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>Medha OS</h1>
+        </div>
+        <nav>
+            <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a>
+            <a href="{{ url_for('people') }}" class="{% if request.endpoint in ['people', 'person_detail'] %}active{% endif %}">People</a>
+            <a href="{{ url_for('projects') }}" class="{% if request.endpoint in ['projects', 'project_detail'] %}active{% endif %}">Projects</a>
+            <a href="{{ url_for('events') }}" class="{% if request.endpoint == 'events' %}active{% endif %}">Events</a>
+        </nav>
+    </aside>
+    
+    <div class="main-wrapper">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+<script>
+    function togglePanel(id) {
+        const panel = document.getElementById(id);
+        if (panel) {
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+    }
+</script>
+</body>
+</html>
